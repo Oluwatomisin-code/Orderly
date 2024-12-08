@@ -1,2 +1,2 @@
 # Orderly
-A auto folder organizer (Desktop App) including downloads
+An auto folder organizer (Desktop App) including downloads
