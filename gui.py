@@ -4,6 +4,7 @@ from PIL import Image
 import os
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+import platform
 
 from db import DBHandler
 from file_handler import FileHandler
@@ -14,6 +15,17 @@ class DownloadOrganizer:
         self.root = root
         self.root.title("Orderly")
         self.root.geometry("450x550")
+        
+        # Add window icon
+        try:
+            icon = Image.open("Logo.png")
+            # Convert PIL image to PhotoImage
+            from tkinter import PhotoImage
+            icon_photo = PhotoImage(file="Logo.png")
+            self.root.iconphoto(True, icon_photo)
+        except Exception as e:
+            print(f"Error setting window icon: {str(e)}")
+        
         ctk.set_appearance_mode("system")  # Dark mode
         self.root.configure(bg="#181818")  # Dark mode
         
@@ -58,7 +70,7 @@ class DownloadOrganizer:
         
         # Initialize rules view as None
         self.rules_view = None
-
+        
     def update_folder_list_ui(self):
         for widget in self.folder_widgets:
             widget.destroy()
