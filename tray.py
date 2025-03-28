@@ -1,30 +1,91 @@
 import sys
 from pystray import Icon, Menu, MenuItem
-from PIL import Image, ImageDraw
+from PIL import Image
+import threading
+import platform
+from tkinter import Tk
 
-
-class SystemTrayApp:
-    def __init__(self, app):
-        self.app = app
-        self.tray_icon = None
+class SystemTray:
+    def __init__(self, root: Tk):
+        self.root = root
+        self.icon = None
+        self.setup_tray_icon()
 
     def setup_tray_icon(self):
-        icon_image = self.create_image()
-        menu = Menu(
-            MenuItem("Open GUI", lambda: self.app.root.deiconify()),
-            MenuItem("Exit", self.exit_application),
-        )
-        self.tray_icon = Icon("Orderly", icon_image, "Orderly", menu)
-        self.tray_icon.run()
+        """Setup system tray icon on the main thread"""
+        try:
+            # Load icon image
+            icon_image = Image.open("Logo.png")  # Make sure this image exists
 
-    def create_image(self):
-        image = Image.new("RGB", (64, 64), color=(0, 128, 255))
-        draw = ImageDraw.Draw(image)
-        draw.rectangle((16, 16, 48, 48), fill=(255, 255, 255))
-        return image
+            # Create menu items
+            menu = Menu(
+                MenuItem("Show", self.show_window),
+                MenuItem("Hide", self.hide_window),
+                MenuItem("Exit", self.quit_app)
+            )
 
-    def exit_application(self):
-        if self.tray_icon:
-            self.tray_icon.stop()
-        self.app.stop_monitoring()
-        sys.exit(0)
+            # Create system tray icon
+            self.icon = Icon(
+                name="Orderly",
+                icon=icon_image,
+                title="Orderly",
+                menu=menu
+            )
+
+            # Start icon in a way that doesn't block the main thread
+            threading.Thread(target=self.run_icon, daemon=True).start()
+
+        except Exception as e:
+            print(f"Error setting up system tray: {str(e)}")
+
+    def run_icon(self):
+        """Run the system tray icon"""
+        try:
+            self.icon.run()
+        except Exception as e:
+            print(f"Error running system tray: {str(e)}")
+
+    def show_window(self, icon, item):
+        """Show the main window"""
+        self.root.deiconify()
+        self.root.lift()
+        if platform.system() == 'Darwin':  # macOS
+            self.root.attributes('-topmost', True)
+            self.root.attributes('-topmost', False)
+
+    def hide_window(self, icon, item):
+        """Hide the main window"""
+        self.root.withdraw()
+
+    def quit_app(self, icon, item):
+        """Quit the application"""
+        icon.stop()
+        self.root.quit()
+
+    def stop(self):
+        """Stop the system tray icon"""
+        if self.icon:
+            self.icon.stop()
+
+# Helper function to handle the platform-specific threading logic
+def run_tray_icon(app):
+    tray_app = SystemTray(app.root)
+    
+    print(sys.platform, 'platform')
+    
+    # Check if the application is being run on macOS
+    if sys.platform == "darwin":
+        # Run the tray icon setup on the main thread for macOS
+        threading.Thread(target=tray_app.setup_tray_icon, daemon=True).start()
+    else:
+        # For other platforms (Windows/Linux), run this directly
+        tray_app.setup_tray_icon()
+
+# Example Usage:
+# Assuming your main application class is called `DownloadOrganizer`, you would pass that to `run_tray_icon`.
+# from your_application import DownloadOrganizer
+
+# If you are using Tkinter, for example:
+# root = ctk.CTk()
+# app = DownloadOrganizer(root)
+# run_tray_icon(app)

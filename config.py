@@ -10,7 +10,8 @@ DEFAULT_RULES = {
     "tiff": "Images",
     "webp": "Images",
     "svg": "Images",
-    ".raw": "Images",
+    "raw": "Images",
+    "heic": "Images",
     
     # Documents
     "pdf": "Documents",
@@ -81,3 +82,41 @@ DEFAULT_FOLDERS = [
     os.path.join(os.path.expanduser("~"), "Downloads"),
     os.path.join(os.path.expanduser("~"), "Documents"),
 ]
+
+# Default extension categories and their extensions
+DEFAULT_CATEGORIES = {
+    "Audio": {
+        "extensions": [".mp3", ".wav", ".flac", ".m4a", ".aac"],
+        "folder": "Audio"
+    },
+    "Video": {
+        "extensions": [".mp4", ".mov", ".avi", ".mkv", ".wmv"],
+        "folder": "Video"
+    },
+    "Images": {
+        "extensions": [".jpg", ".png", ".gif", ".bmp", ".webp"],
+        "folder": "Images"
+    },
+    "Documents": {
+        "extensions": [".pdf", ".doc", ".docx", ".txt", ".rtf"],
+        "folder": "Documents"
+    },
+    "Archives": {
+        "extensions": [".zip", ".rar", ".7z", ".tar", ".gz"],
+        "folder": "Archives"
+    }
+}
+
+# Function to get extension category
+def get_category_for_extension(extension):
+    """Returns the category name for a given extension"""
+    for category, data in DEFAULT_CATEGORIES.items():
+        if extension.lower() in data["extensions"]:
+            return category
+    return "Other"
+
+# Function to get default folder name for extension
+def get_default_folder(extension):
+    """Returns the default folder name for a given extension"""
+    category = get_category_for_extension(extension)
+    return DEFAULT_CATEGORIES.get(category, {}).get("folder", "Other")

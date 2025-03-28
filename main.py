@@ -236,10 +236,13 @@
 #     root.mainloop()
 from tkinter import Tk
 from gui import DownloadOrganizer
-from tray import SystemTrayApp
+from tray import SystemTray
 from updater import AppUpdater
 import threading
 from tkinter import messagebox
+import customtkinter as ctk
+import signal
+import sys
 
 CURRENT_VERSION = "1.0.0"
 REPO_OWNER = "oluwatomisin-code"
@@ -257,10 +260,20 @@ def check_for_updates_periodically(updater, interval=3600):
                 updater.download_and_apply_update(download_url, target_dir=".")
         time.sleep(interval)
 
-if __name__ == "__main__":
-    root = Tk()
-    app = DownloadOrganizer(root)
+def signal_handler(sig, frame):
+    """Handle cleanup when app is terminated"""
+    sys.exit(0)
 
+def main():
+    # Set up signal handler
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    # Create the main window
+    root = ctk.CTk()
+    
+    # Initialize the app
+    app = DownloadOrganizer(root)
+    
     updater = AppUpdater(REPO_OWNER, REPO_NAME, CURRENT_VERSION)
 
     # Check for updates at startup
@@ -272,12 +285,28 @@ if __name__ == "__main__":
         if messagebox.askyesno("Update Available", prompt):
             updater.download_and_apply_update(download_url, target_dir=".")
 
-    # Start periodic update checking in a separate thread
-    threading.Thread(target=check_for_updates_periodically, args=(updater,), daemon=True).start()
+    # Initialize system tray
+    tray = SystemTray(root)
+    
+    def on_closing():
+        """Cleanup on window close"""
+        tray.stop()  # Stop the tray icon
+        root.quit()  # Quit the application
+    
+    # Set the cleanup handler
+    root.protocol('WM_DELETE_WINDOW', on_closing)
+    
+    # Start update checker in background
+    update_thread = threading.Thread(target=check_for_updates_periodically, daemon=True)
+    update_thread.start()
+    
+    try:
+        # Start the main loop
+        root.mainloop()
+    finally:
+        # Ensure tray is cleaned up
+        if tray:
+            tray.stop()
 
-    # Initialize and run the system tray
-    tray_app = SystemTrayApp(app)
-    threading.Thread(target=tray_app.setup_tray_icon, daemon=True).start()
-
-    root.protocol("WM_DELETE_WINDOW", lambda: app.stop_monitoring() or root.destroy())
-    root.mainloop()
+if __name__ == "__main__":
+    main()
