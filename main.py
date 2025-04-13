@@ -1,312 +1,217 @@
-# import os
-# import shutil
-# from tkinter import Tk, Label, Button, Listbox, filedialog, Scrollbar, END, SINGLE, messagebox, simpledialog
-# from watchdog.observers import Observer
-# from watchdog.events import FileSystemEventHandler
+import os
+import sys
+if sys.platform == 'darwin':  # macOS specific
+    os.environ['PYTHON_HIDE_DOCK_ICON'] = '1'
 
-# # Predefined file type rules
-# DEFAULT_RULES = {
-#     # Images
-#     "jpg": "Images",
-#     "jpeg": "Images",
-#     "png": "Images",
-#     "gif": "Images",
-#     "bmp": "Images",
-#     "tiff": "Images",
-#     "webp": "Images",
-#     "svg": "Images",
-    
-#     # Documents
-#     "pdf": "Documents",
-#     "doc": "Documents",
-#     "docx": "Documents",
-#     "xls": "Documents",
-#     "xlsx": "Documents",
-#     "ppt": "Documents",
-#     "pptx": "Documents",
-#     "txt": "Documents",
-#     "rtf": "Documents",
-#     "odt": "Documents",
-#     "epub": "Documents",
-    
-#     # Videos
-#     "mp4": "Videos",
-#     "avi": "Videos",
-#     "mkv": "Videos",
-#     "mov": "Videos",
-#     "flv": "Videos",
-#     "wmv": "Videos",
-#     "webm": "Videos",
-    
-#     # Audios
-#     "mp3": "Audios",
-#     "wav": "Audios",
-#     "aac": "Audios",
-#     "ogg": "Audios",
-#     "flac": "Audios",
-#     "wma": "Audios",
-#     "m4a": "Audios",
-    
-#     # Compressed/Archives
-#     "zip": "Archives",
-#     "rar": "Archives",
-#     "7z": "Archives",
-#     "tar": "Archives",
-#     "gz": "Archives",
-#     "bz2": "Archives",
-#     "xz": "Archives",
-    
-#     # Code/Executables
-#     "exe": "Executables",
-#     "msi": "Executables",
-#     "sh": "Scripts",
-#     "py": "Scripts",
-#     "js": "Scripts",
-#     "html": "Web_Files",
-#     "css": "Web_Files",
-#     "php": "Web_Files",
-#     "java": "Code_Files",
-#     "cpp": "Code_Files",
-#     "c": "Code_Files",
-#     "cs": "Code_Files",
-#     "rb": "Code_Files",
-#     "go": "Code_Files",
-#     "ts": "Code_Files",
-    
-#     # Miscellaneous
-#     "iso": "Disk_Images",
-#     "dmg": "Disk_Images",
-#     "apk": "Apps",
-#     "ipa": "Apps",
-#     "torrent": "Torrents",
-# }
-
-
-# class FileHandler(FileSystemEventHandler):
-#     def __init__(self, rules, monitored_folders):
-#         self.rules = rules
-#         self.monitored_folders = monitored_folders
-
-#     def on_created(self, event):
-#         if not event.is_directory:
-#             self.organize_file(event.src_path)
-
-#     def organize_file(self, file_path):
-#         file_name = os.path.basename(file_path)
-#         ext = file_name.split(".")[-1].lower()
-#         if ext in self.rules:
-#             for folder in self.monitored_folders:
-#                 if file_path.startswith(folder):
-#                     target_folder = os.path.join(folder, self.rules[ext])
-#                     os.makedirs(target_folder, exist_ok=True)
-#                     target_path = os.path.join(target_folder, file_name)
-#                     shutil.move(file_path, target_path)
-
-#     def organize_all(self):
-#         for folder in self.monitored_folders:
-#             for file_name in os.listdir(folder):
-#                 file_path = os.path.join(folder, file_name)
-#                 if os.path.isfile(file_path):
-#                     self.organize_file(file_path)
-
-# class DownloadOrganizer:
-#     def __init__(self, root):
-#         self.root = root
-#         self.root.title("Orderly")
-        
-#         # Initialize variables
-#         self.rules = {**DEFAULT_RULES}
-#         self.monitored_folders = []
-#         self.observers = []
-
-#         # Set default folders
-#         self.add_default_folders()
-
-#         # GUI components
-#         Label(root, text="Monitored Folders:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
-#         self.folder_listbox = Listbox(root, height=10, width=60, selectmode=SINGLE)
-#         self.folder_listbox.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
-#         Button(root, text="Add Folder", command=self.add_folder).grid(row=1, column=2, padx=10, pady=10)
-#         Button(root, text="Remove Folder", command=self.remove_folder).grid(row=2, column=2, padx=10, pady=10)
-
-#         Label(root, text="Extension Rules:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
-#         self.rule_listbox = Listbox(root, height=10, width=60, selectmode=SINGLE)
-#         self.rule_listbox.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
-#         Button(root, text="Add Rule", command=self.add_rule).grid(row=4, column=2, padx=10, pady=10)
-#         Button(root, text="Remove Rule", command=self.remove_rule).grid(row=5, column=2, padx=10, pady=10)
-
-#         Button(root, text="Start Monitoring", command=self.start_monitoring).grid(row=6, column=0, pady=10)
-#         Button(root, text="Stop Monitoring", command=self.stop_monitoring).grid(row=6, column=1, pady=10)
-
-#         # Populate UI
-#         self.update_rule_listbox()
-#         self.update_folder_listbox()
-
-#     def add_default_folders(self):
-#         downloads = os.path.join(os.path.expanduser("~"), "Downloads")
-#         documents = os.path.join(os.path.expanduser("~"), "Documents")
-#         self.monitored_folders = [downloads, documents]
-
-#     def add_folder(self):
-#         folder = filedialog.askdirectory()
-#         if folder and folder not in self.monitored_folders:
-#             self.monitored_folders.append(folder)
-#             self.update_folder_listbox()
-
-#     def remove_folder(self):
-#         selected = self.folder_listbox.curselection()
-#         if selected:
-#             folder = self.folder_listbox.get(selected)
-#             self.monitored_folders.remove(folder)
-#             self.update_folder_listbox()
-#         else:
-#             messagebox.showerror("Error", "Please select a folder to remove.")
-
-#     def update_folder_listbox(self):
-#         self.folder_listbox.delete(0, END)
-#         for folder in self.monitored_folders:
-#             self.folder_listbox.insert(END, folder)
-
-#     def add_rule(self):
-#         ext = simpledialog.askstring("Extension", "Enter file extension (e.g., jpg):").strip().lower()
-#         folder = filedialog.askdirectory(title="Select Target Folder")
-#         if ext and folder:
-#             self.rules[ext] = folder
-#             self.update_rule_listbox()
-
-#     def remove_rule(self):
-#         selected = self.rule_listbox.curselection()
-#         if selected:
-#             rule_text = self.rule_listbox.get(selected)
-#             ext = rule_text.split(":")[0]
-#             del self.rules[ext]
-#             self.update_rule_listbox()
-#         else:
-#             messagebox.showerror("Error", "Please select a rule to remove.")
-
-#     def update_rule_listbox(self):
-#         self.rule_listbox.delete(0, END)
-#         for ext, folder in self.rules.items():
-#             self.rule_listbox.insert(END, f"{ext}: {folder}")
-
-#     def start_monitoring(self):
-#         self.stop_monitoring()
-
-#         # Organize all existing files immediately
-#         handler = FileHandler(self.rules, self.monitored_folders)
-#         handler.organize_all()
-
-#         # Start monitoring
-#         for folder in self.monitored_folders:
-#             observer = Observer()
-#             observer.schedule(handler, folder, recursive=False)
-#             observer.start()
-#             self.observers.append(observer)
-
-#         messagebox.showinfo("Started", "Monitoring started successfully!")
-
-#     def stop_monitoring(self):
-#         for observer in self.observers:
-#             observer.stop()
-#             observer.join()
-#         self.observers = []
-#         messagebox.showinfo("Stopped", "Monitoring stopped successfully!")
-
-# # Run the application
-# if __name__ == "__main__":
-#     root = Tk()
-#     app = DownloadOrganizer(root)
-#     root.protocol("WM_DELETE_WINDOW", lambda: app.stop_monitoring() or root.destroy())
-#     root.mainloop()
-
-# from tkinter import Tk
-# from gui import DownloadOrganizer
-# from tray import SystemTrayApp
-# import threading
-
-# if __name__ == "__main__":
-#     root = Tk()
-#     app = DownloadOrganizer(root)
-
-#     # Initialize and run the system tray
-#     tray_app = SystemTrayApp(app)
-#     threading.Thread(target=tray_app.setup_tray_icon, daemon=True).start()
-
-#     root.protocol("WM_DELETE_WINDOW", lambda: app.stop_monitoring() or root.destroy())
-#     root.mainloop()
 from tkinter import Tk
-from gui import DownloadOrganizer
+from gui import App
 from tray import SystemTray
-from updater import AppUpdater
+from updater import Updater
 import threading
 from tkinter import messagebox
 import customtkinter as ctk
 import signal
 import sys
+import pystray
+from PIL import Image
+import platform
+import logging
+import os
 
 CURRENT_VERSION = "1.0.0"
 REPO_OWNER = "oluwatomisin-code"
 REPO_NAME = "Orderly"
 
-def check_for_updates_periodically(updater, interval=3600):
-    import time
+# Set up logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename=os.path.expanduser('~/orderly_debug.log'),
+    filemode='w'
+)
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+def check_for_updates_periodically(updater):
     while True:
-        update_info = updater.check_for_update()
-        if update_info["update_available"]:
-            latest_version = update_info["latest_version"]
-            download_url = update_info["download_url"]
-            prompt = f"A new version ({latest_version}) is available. Would you like to update now?"
-            if messagebox.askyesno("Update Available", prompt):
-                updater.download_and_apply_update(download_url, target_dir=".")
-        time.sleep(interval)
+        try:
+            logging.debug("Checking for updates...")
+            update_info = updater.check_for_update()
+            if update_info.get("update_available"):
+                logging.info(f"Update available: {update_info['latest_version']}")
+        except Exception as e:
+            logging.error(f"Update check failed: {e}")
+        threading.Event().wait(3600)
 
 def signal_handler(sig, frame):
     """Handle cleanup when app is terminated"""
     sys.exit(0)
 
+class OrderlyApp:
+    def __init__(self):
+        self.root = None
+        self.app = None
+        self.tray = None
+        self.updater = None
+        
+    def setup_window(self):
+        try:
+            # Create and configure main window
+            self.root = ctk.CTk()
+            self.root.title("Orderly")
+            self.root.geometry("450x550")
+            
+            # Initialize the main app
+            self.app = App(self.root)
+            
+            # Don't withdraw window on startup
+            self.root.deiconify()
+            
+            # Prevent immediate closing
+            self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+            
+            return True
+        except Exception as e:
+            logging.exception("Failed to setup window")
+            return False
+
+    def setup_tray(self):
+        try:
+            # Initialize system tray after window
+            self.tray = SystemTray(self.root)
+            return True
+        except Exception as e:
+            logging.exception("Failed to setup tray")
+            return False
+
+    def setup_updater(self):
+        try:
+            # Initialize updater
+            self.updater = Updater(
+                repo_owner="oluwatomisin",
+                repo_name="Orderly",
+                current_version="1.0.0"
+            )
+            
+            # Start update checker in background
+            update_thread = threading.Thread(
+                target=self.check_for_updates_periodically,
+                daemon=True
+            )
+            update_thread.start()
+            return True
+        except Exception as e:
+            logging.exception("Failed to setup updater")
+            return False
+
+    def check_for_updates_periodically(self):
+        while True:
+            try:
+                update_info = self.updater.check_for_update()
+                if update_info.get("update_available"):
+                    logging.info(f"Update available: {update_info['latest_version']}")
+            except Exception as e:
+                logging.error(f"Update check failed: {e}")
+            threading.Event().wait(3600)
+
+    def on_closing(self):
+        try:
+            # Hide window instead of closing
+            self.root.withdraw()
+        except Exception as e:
+            logging.exception("Error in on_closing")
+            self.quit_app()
+
+    def quit_app(self):
+        try:
+            if self.tray:
+                self.tray.icon.stop()
+            if self.root:
+                self.root.quit()
+        except Exception as e:
+            logging.exception("Error while quitting")
+            sys.exit(1)
+
+    def run(self):
+        try:
+            # Setup components
+            if not self.setup_window():
+                return
+            
+            if not self.setup_tray():
+                return
+            
+            if not self.setup_updater():
+                return
+            
+            # Start the main loop
+            self.root.mainloop()
+            
+        except Exception as e:
+            logging.exception("Critical error in run")
+            sys.exit(1)
+
 def main():
-    # Set up signal handler
-    signal.signal(signal.SIGINT, signal_handler)
-    
-    # Create the main window
-    root = ctk.CTk()
-    
-    # Initialize the app
-    app = DownloadOrganizer(root)
-    
-    updater = AppUpdater(REPO_OWNER, REPO_NAME, CURRENT_VERSION)
-
-    # Check for updates at startup
-    update_info = updater.check_for_update()
-    if update_info["update_available"]:
-        latest_version = update_info["latest_version"]
-        download_url = update_info["download_url"]
-        prompt = f"A new version ({latest_version}) is available. Would you like to update now?"
-        if messagebox.askyesno("Update Available", prompt):
-            updater.download_and_apply_update(download_url, target_dir=".")
-
-    # Initialize system tray
-    tray = SystemTray(root)
-    
-    def on_closing():
-        """Cleanup on window close"""
-        tray.stop()  # Stop the tray icon
-        root.quit()  # Quit the application
-    
-    # Set the cleanup handler
-    root.protocol('WM_DELETE_WINDOW', on_closing)
-    
-    # Start update checker in background
-    update_thread = threading.Thread(target=check_for_updates_periodically, daemon=True)
-    update_thread.start()
-    
-    try:
-        # Start the main loop
-        root.mainloop()
-    finally:
-        # Ensure tray is cleaned up
-        if tray:
-            tray.stop()
+    app = OrderlyApp()
+    app.run()
 
 if __name__ == "__main__":
     main()
+
+class SystemTray:
+    def __init__(self, root):
+        self.root = root
+        self.icon = None
+        self.setup_tray_icon()
+
+    def setup_tray_icon(self):
+        try:
+            # Load the tray icon image
+            image = Image.open("Logo.png")
+            
+            # Create the menu
+            menu = (
+                pystray.MenuItem("Show", self.show_window),
+                pystray.MenuItem("Hide", self.hide_window),
+                pystray.MenuItem("Quit", self.quit_app)
+            )
+            
+            # Create the icon
+            self.icon = pystray.Icon("Orderly", image, "Orderly", menu)
+            
+            # Start the icon in a separate thread
+            icon_thread = threading.Thread(target=self.run_icon)
+            icon_thread.daemon = True
+            icon_thread.start()
+            
+        except Exception as e:
+            print(f"Error setting up tray icon: {e}")
+            raise
+
+    def run_icon(self):
+        try:
+            self.icon.run()
+        except Exception as e:
+            print(f"Error running tray icon: {e}")
+
+    def show_window(self, _=None):
+        self.root.after(0, self.root.deiconify)
+        self.root.after(0, self.root.lift)
+
+    def hide_window(self, _=None):
+        self.root.after(0, self.root.withdraw)
+
+    def quit_app(self, _=None):
+        try:
+            if self.icon:
+                self.icon.stop()
+            self.root.after(0, self.root.quit)
+        except Exception as e:
+            print(f"Error quitting app: {e}")

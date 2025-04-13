@@ -5,12 +5,23 @@ import os
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import platform
+import sys
 
 from db import DBHandler
 from file_handler import FileHandler
 
+def get_resource_path(relative_path):
+    """Get the correct resource path for both development and bundled app"""
+    if getattr(sys, 'frozen', False):
+        # Running in a bundle
+        base_path = sys._MEIPASS
+    else:
+        # Running in development
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
-class DownloadOrganizer:
+class App:
     def __init__(self, root):
         self.root = root
         self.root.title("Orderly")
@@ -18,10 +29,10 @@ class DownloadOrganizer:
         
         # Add window icon
         try:
-            icon = Image.open("Logo.png")
+            icon = Image.open(get_resource_path("Logo.png"))
             # Convert PIL image to PhotoImage
             from tkinter import PhotoImage
-            icon_photo = PhotoImage(file="Logo.png")
+            icon_photo = PhotoImage(file=get_resource_path("Logo.png"))
             self.root.iconphoto(True, icon_photo)
         except Exception as e:
             print(f"Error setting window icon: {str(e)}")
@@ -47,7 +58,11 @@ class DownloadOrganizer:
         self.folder_text = ctk.CTkLabel(self.header, text="Folders", font=("Arial", 14))
         self.folder_text.pack(side="left", padx=10)
         
-        upload_icon_loaded = ctk.CTkImage(light_image=Image.open("folder-add.png"), size=(18, 18))
+        upload_icon_loaded = ctk.CTkImage(
+            light_image=Image.open(get_resource_path("folder-add.png")),
+            dark_image=Image.open(get_resource_path("folder-add.png")),
+            size=(18, 18)
+        )
         
         self.upload_btn = ctk.CTkButton(self.header, image=upload_icon_loaded, text=" Upload folder", hover_color="#181818",
                                         fg_color="transparent", text_color="#FF617F", 
@@ -77,10 +92,26 @@ class DownloadOrganizer:
         self.folder_widgets.clear()
 
         # Load icons
-        folder_icon_loaded = ctk.CTkImage(light_image=Image.open("folder-open.png"), size=(20, 20))
-        play_icon_loaded = ctk.CTkImage(light_image=Image.open("play-circle.png"), size=(16, 16))
-        pause_icon_loaded = ctk.CTkImage(light_image=Image.open("pause.png"), size=(16, 16))
-        settings_icon_loaded = ctk.CTkImage(light_image=Image.open("settings.png"), size=(20, 20))
+        folder_icon_loaded = ctk.CTkImage(
+            light_image=Image.open(get_resource_path("folder-open.png")),
+            dark_image=Image.open(get_resource_path("folder-open.png")),
+            size=(20, 20)
+        )
+        play_icon_loaded = ctk.CTkImage(
+            light_image=Image.open(get_resource_path("play-circle.png")),
+            dark_image=Image.open(get_resource_path("play-circle.png")),
+            size=(16, 16)
+        )
+        pause_icon_loaded = ctk.CTkImage(
+            light_image=Image.open(get_resource_path("pause.png")),
+            dark_image=Image.open(get_resource_path("pause.png")),
+            size=(16, 16)
+        )
+        settings_icon_loaded = ctk.CTkImage(
+            light_image=Image.open(get_resource_path("settings.png")),
+            dark_image=Image.open(get_resource_path("settings.png")),
+            size=(20, 20)
+        )
 
         for folder in self.monitored_folders:
             folder_frame = ctk.CTkFrame(self.folders_frame, corner_radius=20, fg_color="transparent", border_width=1, border_color="#434343")
@@ -115,7 +146,11 @@ class DownloadOrganizer:
         header = ctk.CTkFrame(self.rules_view, fg_color="transparent")
         header.pack(fill="x", padx=20, pady=(10, 20))
         
-        back_icon = ctk.CTkImage(light_image=Image.open("arrow-left.png"), size=(18, 18))
+        back_icon = ctk.CTkImage(
+            light_image=Image.open(get_resource_path("arrow-left.png")),
+            dark_image=Image.open(get_resource_path("arrow-left.png")),
+            size=(18, 18)
+        )
         back_btn = ctk.CTkButton(header, image=back_icon, text=" General settings", width=30,
                                 fg_color="transparent", hover_color="#181818",
                                 command=self.show_main_view)
@@ -133,8 +168,16 @@ class DownloadOrganizer:
         sort_title.pack(side="left")
         
         # Initialize chevron icons
-        self.chevron_down = ctk.CTkImage(light_image=Image.open("arrow-circle-down.png"), size=(16, 16))
-        self.chevron_up = ctk.CTkImage(light_image=Image.open("arrow-circle-up.png"), size=(16, 16))
+        self.chevron_down = ctk.CTkImage(
+            light_image=Image.open(get_resource_path("arrow-circle-down.png")),
+            dark_image=Image.open(get_resource_path("arrow-circle-down.png")),
+            size=(16, 16)
+        )
+        self.chevron_up = ctk.CTkImage(
+            light_image=Image.open(get_resource_path("arrow-circle-up.png")),
+            dark_image=Image.open(get_resource_path("arrow-circle-up.png")),
+            size=(16, 16)
+        )
         
         # Create expand/collapse button
         self.sort_expand_btn = ctk.CTkButton(sort_header, image=self.chevron_up, text="", width=30,
@@ -227,7 +270,11 @@ class DownloadOrganizer:
         category_frame = ctk.CTkFrame(self.ext_content, fg_color="transparent")
         category_frame.pack(fill="x", pady=(0, 10))
         
-        folder_icon = ctk.CTkImage(light_image=Image.open("folder.png"), size=(20, 20))
+        folder_icon = ctk.CTkImage(
+            light_image=Image.open(get_resource_path("folder.png")),
+            dark_image=Image.open(get_resource_path("folder.png")),
+            size=(20, 20)
+        )
         icon_label = ctk.CTkLabel(category_frame, image=folder_icon, text="")
         icon_label.pack(side="left", padx=(0, 10))
         
@@ -264,7 +311,11 @@ class DownloadOrganizer:
                                                                     folder_entry.get()))
         
         # Delete button
-        delete_icon = ctk.CTkImage(light_image=Image.open("minus-circle.png"), size=(20, 20))
+        delete_icon = ctk.CTkImage(
+            light_image=Image.open(get_resource_path("minus-circle.png")),
+            dark_image=Image.open(get_resource_path("minus-circle.png")),
+            size=(20, 20)
+        )
         delete_btn = ctk.CTkButton(row, image=delete_icon, text="", width=30,
                                   fg_color="transparent", hover_color="#181818",
                                   command=lambda: self.delete_rule(extension, row))
@@ -487,7 +538,11 @@ class DownloadOrganizer:
         frame.pack(fill="x", pady=5)
         
         try:
-            icon = ctk.CTkImage(light_image=Image.open(icon_name), size=(20, 20))
+            icon = ctk.CTkImage(
+                light_image=Image.open(get_resource_path(icon_name)),
+                dark_image=Image.open(get_resource_path(icon_name)),
+                size=(20, 20)
+            )
             icon_label = ctk.CTkLabel(frame, image=icon, text="")
             icon_label.pack(side="left", padx=(0, 10))
         except Exception as e:
@@ -508,7 +563,11 @@ class DownloadOrganizer:
         
         if active:
             try:
-                check_icon = ctk.CTkImage(light_image=Image.open("tick-circle.png"), size=(20, 20))
+                check_icon = ctk.CTkImage(
+                    light_image=Image.open(get_resource_path("tick-circle.png")),
+                    dark_image=Image.open(get_resource_path("tick-circle.png")),
+                    size=(20, 20)
+                )
                 check_label = ctk.CTkLabel(frame, image=check_icon, text="")
                 check_label.pack(side="right")
             except Exception as e:
@@ -519,5 +578,5 @@ class DownloadOrganizer:
 
 if __name__ == "__main__":
     root = ctk.CTk()
-    app = DownloadOrganizer(root)
+    app = App(root)
     root.mainloop()

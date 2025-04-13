@@ -4,7 +4,7 @@ import zipfile
 import shutil
 from tkinter import messagebox
 
-class AppUpdater:
+class Updater:
     def __init__(self, repo_owner, repo_name, current_version):
         self.repo_owner = repo_owner
         self.repo_name = repo_name

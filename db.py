@@ -1,10 +1,40 @@
 import sqlite3
 import os
+import platform
 from config import DEFAULT_RULES, DEFAULT_FOLDERS
+import logging
+import sys
+
+def get_resource_path(relative_path):
+    """Get the correct resource path for both development and bundled app"""
+    if getattr(sys, 'frozen', False):
+        # Running in a bundle
+        base_path = sys._MEIPASS
+    else:
+        # Running in development
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 class DBHandler:
     def __init__(self, db_name="orderly.db"):
-        self.db_name = db_name
+        # Determine appropriate app data directory
+        if platform.system() == "Darwin":  # macOS
+            app_data_dir = os.path.expanduser("~/Library/Application Support/Orderly")
+        elif platform.system() == "Windows":
+            app_data_dir = os.path.join(os.getenv("APPDATA"), "Orderly")
+        else:  # Linux and others
+            app_data_dir = os.path.expanduser("~/.orderly")
+            
+        # Create app data directory if it doesn't exist
+        os.makedirs(app_data_dir, exist_ok=True)
+        logging.debug(f"Creating database directory at: {app_data_dir}")
+        
+        # Set up database path
+        self.db_name = os.path.join(app_data_dir, db_name)
+        logging.debug(f"Database path: {self.db_name}")
+        
+        # Initialize database connection
         self.conn = sqlite3.connect(self.db_name)
         self.cursor = self.conn.cursor()
         self.create_tables()
