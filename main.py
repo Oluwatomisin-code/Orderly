@@ -17,6 +17,8 @@ from PIL import Image
 import platform
 import logging
 import os
+from splash import SplashScreen
+import time
 
 CURRENT_VERSION = "1.0.0"
 REPO_OWNER = "oluwatomisin-code"
@@ -68,18 +70,79 @@ class OrderlyApp:
             self.root.title("Orderly")
             self.root.geometry("450x550")
             
-            # Initialize the main app
-            self.app = App(self.root)
+            # Create splash screen frame
+            splash_frame = ctk.CTkFrame(self.root, fg_color="#1E1E1E")  # Dark background
+            splash_frame.pack(fill="both", expand=True)
             
-            # Don't withdraw window on startup
-            self.root.deiconify()
+            # Create logo image
+            logo_image = ctk.CTkImage(
+                light_image=Image.open(resource_path(os.path.join("assets", "Splash.png"))),
+                dark_image=Image.open(resource_path(os.path.join("assets", "Splash.png"))),
+                size=(50, 50)
+            )
             
-            # Prevent immediate closing
-            self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+            # Create a frame for center content
+            center_frame = ctk.CTkFrame(splash_frame, fg_color="transparent")
+            center_frame.pack(expand=True, fill="both")
+
+            # Centered vertical stack for logo and app name
+            logo_and_name = ctk.CTkFrame(center_frame, fg_color="transparent")
+            logo_and_name.place(relx=0.5, rely=0.5, anchor="center")
+
+            # Logo at the center
+            logo_label = ctk.CTkLabel(logo_and_name, image=logo_image, text="")
+            logo_label.pack(pady=(0, 8))  # Small gap below logo
+
+            # App Name below logo
+            app_name = ctk.CTkLabel(
+                logo_and_name, 
+                text="Orderly",
+                font=("Arial", 18),
+                text_color="white"
+            )
+            app_name.pack()
+
+            # Tagline at bottom, closer to the edge
+            tagline = ctk.CTkLabel(
+                splash_frame,  # Attached to splash_frame instead of center_frame
+                text="Your Files, Organized Effortlessly",
+                font=("Arial", 16),
+                text_color="#CCCCCC"
+            )
+            tagline.pack(side="bottom", pady=(0, 16))  # Closer to the bottom
+            
+            # Store splash frame reference for later removal
+            self.splash_frame = splash_frame
+            
+            # Schedule the transition to main app
+            self.root.after(2000, self.show_main_app)
             
             return True
         except Exception as e:
             logging.exception("Failed to setup window")
+            return False
+
+    def show_main_app(self):
+        """Transition from splash to main app"""
+        try:
+            # Remove splash content
+            self.splash_frame.destroy()
+            
+            # Initialize the main app
+            self.app = App(self.root)
+            
+            # Prevent immediate closing
+            self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+            
+            # Setup other components
+            if not self.setup_tray():
+                return
+            
+            if not self.setup_updater():
+                return
+            
+        except Exception as e:
+            logging.exception("Failed to transition to main app")
             return False
 
     def setup_tray(self):
@@ -141,14 +204,8 @@ class OrderlyApp:
 
     def run(self):
         try:
-            # Setup components
+            # Setup window with splash screen
             if not self.setup_window():
-                return
-            
-            if not self.setup_tray():
-                return
-            
-            if not self.setup_updater():
                 return
             
             # Start the main loop

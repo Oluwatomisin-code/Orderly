@@ -1,7 +1,27 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('Logo.png', '.'), ('folder-add.png', '.'), ('folder-open.png', '.'), ('play-circle.png', '.'), ('pause.png', '.'), ('settings.png', '.'), ('arrow-left.png', '.'), ('arrow-circle-down.png', '.'), ('arrow-circle-up.png', '.'), ('folder.png', '.'), ('magicpen.png', '.')]
+datas = [
+    ('assets/Logo.png', 'assets'),
+    ('assets/Logo.icns', 'assets'),
+    ('assets/orderly.ico', 'assets'),
+    ('assets/folder-add.png', 'assets'),
+    ('assets/folder-add-trans.png', 'assets'),
+    ('assets/folder-open.png', 'assets'),
+    ('assets/play-circle.png', 'assets'),
+    ('assets/pause.png', 'assets'),
+    ('assets/settings.png', 'assets'),
+    ('assets/settingsoo.png', 'assets'),
+    ('assets/arrow-left.png', 'assets'),
+    ('assets/arrow-circle-down.png', 'assets'),
+    ('assets/arrow-circle-up.png', 'assets'),
+    ('assets/folder.png', 'assets'),
+    ('assets/magicpen.png', 'assets'),
+    ('assets/no-folders.png', 'assets'),
+    ('assets/splash.png', 'assets'),
+    ('assets/minus-circle.png', 'assets'),
+    ('assets/tick-circle.png', 'assets')
+]
 binaries = []
 hiddenimports = ['PIL', 'PIL._tkinter_finder', 'customtkinter', 'pystray', 'requests', 'watchdog', 'watchdog.observers', 'watchdog.events', 'tkinter', '_tkinter']
 tmp_ret = collect_all('customtkinter')
@@ -43,7 +63,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['Logo.icns'],
+    icon=['assets/Logo.icns'],
 )
 coll = COLLECT(
     exe,
@@ -57,16 +77,6 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='Orderly.app',
-    icon='Logo.icns',
+    icon='assets/Logo.icns',
     bundle_identifier=None,
-    info_plist={
-        'LSUIElement': True,  
-        'LSBackgroundOnly': True,  
-        'CFBundleName': 'Orderly',
-        'CFBundleDisplayName': 'Orderly',
-        'CFBundleVersion': '1.0.0',
-        'CFBundleShortVersionString': '1.0.0',
-        'NSHighResolutionCapable': True,
-        'NSRequiresAquaSystemAppearance': False,
-    },
 )

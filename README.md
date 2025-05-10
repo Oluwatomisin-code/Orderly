@@ -4,18 +4,18 @@ An auto folder organizer (Desktop App) including downloads
 pyinstaller --name="Orderly" \
             --windowed \
             --debug all \
-            --icon=Logo.icns \
-            --add-data="Logo.png:." \
-            --add-data="folder-add.png:." \
-            --add-data="folder-open.png:." \
-            --add-data="play-circle.png:." \
-            --add-data="pause.png:." \
-            --add-data="settings.png:." \
-            --add-data="arrow-left.png:." \
-            --add-data="arrow-circle-down.png:." \
-            --add-data="arrow-circle-up.png:." \
-            --add-data="folder.png:." \
-            --add-data="magicpen.png:." \
+            --icon=assets/Logo.icns \
+            --add-data="assets/Logo.png:." \
+            --add-data="assets/folder-add.png:." \
+            --add-data="assets/folder-open.png:." \
+            --add-data="assets/play-circle.png:." \
+            --add-data="assets/pause.png:." \
+            --add-data="assets/settings.png:." \
+            --add-data="assets/arrow-left.png:." \
+            --add-data="assets/arrow-circle-down.png:." \
+            --add-data="assets/arrow-circle-up.png:." \
+            --add-data="assets/folder.png:." \
+            --add-data="assets/magicpen.png:." \
             --hidden-import=PIL \
             --hidden-import=PIL._tkinter_finder \
             --hidden-import=customtkinter \

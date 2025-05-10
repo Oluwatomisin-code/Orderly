@@ -41,7 +41,7 @@ class SystemTray:
         """Setup system tray icon on the main thread"""
         try:
             # Load icon image using resource path
-            icon_image = Image.open(get_resource_path("Logo.png"))
+            icon_image = Image.open(get_resource_path(os.path.join("assets","Logo.png")))
 
             # Create menu items
             menu = Menu(

@@ -79,8 +79,8 @@ DEFAULT_RULES = {
 }
 
 DEFAULT_FOLDERS = [
-    os.path.join(os.path.expanduser("~"), "Downloads"),
-    os.path.join(os.path.expanduser("~"), "Documents"),
+    # os.path.join(os.path.expanduser("~"), "Downloads"),
+    # os.path.join(os.path.expanduser("~"), "Documents"),
 ]
 
 # Default extension categories and their extensions

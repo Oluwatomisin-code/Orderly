@@ -29,10 +29,10 @@ class App:
         
         # Add window icon
         try:
-            icon = Image.open(get_resource_path("Logo.png"))
+            icon = Image.open(get_resource_path(os.path.join("assets","Logo.png")))
             # Convert PIL image to PhotoImage
             from tkinter import PhotoImage
-            icon_photo = PhotoImage(file=get_resource_path("Logo.png"))
+            icon_photo = PhotoImage(file=get_resource_path(os.path.join("assets","Logo.png")))
             self.root.iconphoto(True, icon_photo)
         except Exception as e:
             print(f"Error setting window icon: {str(e)}")
@@ -47,24 +47,36 @@ class App:
         self.monitoring = self.db.fetch_monitoring_status()
         self.popup = None  # Popup reference
         
+        # Load icons
+        self.empty_state_icon = ctk.CTkImage(
+            light_image=Image.open(get_resource_path(os.path.join("assets","no-folders.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets","no-folders.png"))),
+            size=(120, 80)
+        )
+        
         # Add these as new instance variables
         self.main_view = ctk.CTkFrame(root, fg_color="transparent")
         self.main_view.pack(fill="both", expand=True)
         
-        # Header Frame
+        # # Header Frame
+        # self.header = ctk.CTkFrame(self.main_view, fg_color="transparent")
+        # self.header.pack(fill="x", padx=10, pady=10)
+        
+        # Header Frame (initially hidden)
         self.header = ctk.CTkFrame(self.main_view, fg_color="transparent")
-        self.header.pack(fill="x", padx=10, pady=10)
+        self.header.pack(fill="x", padx=10, pady=10)  # Always pack it to maintain layout order
+        self.header.pack_forget()  # Hide it initially
         
         self.folder_text = ctk.CTkLabel(self.header, text="Folders", font=("Arial", 14))
         self.folder_text.pack(side="left", padx=10)
         
         upload_icon_loaded = ctk.CTkImage(
-            light_image=Image.open(get_resource_path("folder-add.png")),
-            dark_image=Image.open(get_resource_path("folder-add.png")),
+            light_image=Image.open(get_resource_path(os.path.join("assets","folder-add.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets","folder-add.png"))),
             size=(18, 18)
         )
         
-        self.upload_btn = ctk.CTkButton(self.header, image=upload_icon_loaded, text=" Upload folder", hover_color="#181818",
+        self.upload_btn = ctk.CTkButton(self.header, image=upload_icon_loaded, text=" Add a folder to monitor", hover_color="#181818",
                                         fg_color="transparent", text_color="#FF617F", 
                                         command=self.add_folder)
         self.upload_btn.pack(side="right", padx=10)
@@ -76,67 +88,229 @@ class App:
         self.folder_widgets = []
         self.update_folder_list_ui()
         
-        # Monitoring Button
-        self.monitor_button = ctk.CTkButton(self.main_view, text="Stop Monitoring" if self.monitoring else "Start Monitoring", 
-                                            fg_color="#ff2d55" if self.monitoring else "#28a745", 
-                                            text_color="white", width=200, height=50, corner_radius=25, 
-                                            font=("Arial", 12), command=self.toggle_monitoring)
-        self.monitor_button.pack(pady=10, padx=10)
+        # Initialize monitoring button as None
+        self.monitor_button = None
+        # Only create monitoring button if we have folders
+        if self.monitored_folders:
+            self.create_monitor_button()
         
         # Initialize rules view as None
         self.rules_view = None
         
+    
     def update_folder_list_ui(self):
         for widget in self.folder_widgets:
             widget.destroy()
         self.folder_widgets.clear()
 
-        # Load icons
+        if not self.monitored_folders:
+                # Hide the header when no folders
+            self.header.pack_forget()
+
+            # Empty state UI
+            empty_frame = ctk.CTkFrame(self.folders_frame, fg_color="transparent")
+            empty_frame.pack(expand=True, fill="both")
+
+            empty_frame.grid_rowconfigure(0, weight=1)
+            empty_frame.grid_columnconfigure(0, weight=1)
+
+            content_frame = ctk.CTkFrame(empty_frame, fg_color="transparent")
+            content_frame.grid(row=0, column=0)
+
+            icon_frame = ctk.CTkFrame(content_frame, fg_color="transparent", width=120, height=120, corner_radius=40)
+            icon_frame.pack(pady=(0, 20))
+            icon_frame.pack_propagate(False)
+
+            icon_label = ctk.CTkLabel(icon_frame, image=self.empty_state_icon, text="")
+            icon_label.place(relx=0.5, rely=0.5, anchor="center")
+
+            title_label = ctk.CTkLabel(content_frame, text="Your Files, Organized Effortlessly", font=("Arial", 18, "bold"))
+            title_label.pack(pady=(0, 10))
+
+            desc_label = ctk.CTkLabel(
+                content_frame,
+                text="Click Upload to get started. Once uploaded,\nwe'll automatically sort them based on your\ncustom rules.",
+                font=("Arial", 12),
+                text_color="gray"
+            )
+            desc_label.pack(pady=(0, 20))
+
+            upload_icon_loaded = ctk.CTkImage(
+                light_image=Image.open(get_resource_path(os.path.join("assets", "folder-add-trans.png"))),
+                dark_image=Image.open(get_resource_path(os.path.join("assets", "folder-add-trans.png"))),
+                size=(18, 18)
+            )
+
+            add_folder_btn = ctk.CTkButton(
+                content_frame,
+                image=upload_icon_loaded,
+                text="Add a folder to monitor",
+                fg_color="#FF2D55",
+                text_color="white",
+                width=200,
+                height=56,
+                corner_radius=30,
+                command=self.add_folder
+            )
+            add_folder_btn.pack()
+
+            self.folder_widgets.append(empty_frame)
+            return
+
+        else:
+            # Show the header *above* the folders_frame
+            if not self.header.winfo_ismapped():
+                self.header.pack_forget()
+                self.header.pack(before=self.folders_frame, fill="x", padx=10, pady=10)
+                # Load icons
         folder_icon_loaded = ctk.CTkImage(
-            light_image=Image.open(get_resource_path("folder-open.png")),
-            dark_image=Image.open(get_resource_path("folder-open.png")),
-            size=(20, 20)
+            light_image=Image.open(get_resource_path(os.path.join("assets", "folder-open.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets", "folder-open.png"))),
+            size=(24, 24)
         )
         play_icon_loaded = ctk.CTkImage(
-            light_image=Image.open(get_resource_path("play-circle.png")),
-            dark_image=Image.open(get_resource_path("play-circle.png")),
-            size=(16, 16)
+            light_image=Image.open(get_resource_path(os.path.join("assets", "play-circle.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets", "play-circle.png"))),
+            size=(20, 20)
         )
         pause_icon_loaded = ctk.CTkImage(
-            light_image=Image.open(get_resource_path("pause.png")),
-            dark_image=Image.open(get_resource_path("pause.png")),
-            size=(16, 16)
+            light_image=Image.open(get_resource_path(os.path.join("assets", "pause.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets", "pause.png"))),
+            size=(20, 20)
         )
         settings_icon_loaded = ctk.CTkImage(
-            light_image=Image.open(get_resource_path("settings.png")),
-            dark_image=Image.open(get_resource_path("settings.png")),
+            light_image=Image.open(get_resource_path(os.path.join("assets", "settings.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets", "settings.png"))),
             size=(20, 20)
         )
 
         for folder in self.monitored_folders:
-            folder_frame = ctk.CTkFrame(self.folders_frame, corner_radius=20, fg_color="transparent", border_width=1, border_color="#434343")
-            folder_frame.pack(fill="x", pady=5, padx=5)
+            folder_frame = ctk.CTkFrame(self.folders_frame, corner_radius=30, fg_color="transparent", border_width=1, border_color="#434343")
+            folder_frame.pack(fill="x", pady=3, padx=5)
 
             folder_icon = ctk.CTkLabel(folder_frame, image=folder_icon_loaded, text="")
-            folder_icon.pack(side="left", pady=5, padx=5)
+            folder_icon.pack(side="left", pady=14, padx=(14, 0))
 
             folder_label = ctk.CTkLabel(folder_frame, text=folder, font=("Arial", 12))
             folder_label.pack(side="left", pady=5, padx=5)
 
-            # Ensure settings button is correctly assigned
-            settings_btn = ctk.CTkButton(folder_frame, image=settings_icon_loaded, text="", 
-                                        width=30, fg_color="transparent", hover_color="#181818",
-                                        command=lambda btn=folder_label, f=folder: self.toggle_popup(btn, f))
+            settings_btn = ctk.CTkButton(
+                folder_frame, image=settings_icon_loaded, text="",
+                width=30, fg_color="transparent", hover_color="#181818",
+                command=lambda btn=folder_label, f=folder: self.toggle_popup(btn, f)
+            )
             settings_btn.pack(side="right", pady=5, padx=5)
 
             is_active = self.db.get_folder_status(folder)
-            status_btn = ctk.CTkButton(folder_frame, image=pause_icon_loaded if is_active else play_icon_loaded,
-                                    text=" Pause" if is_active else " Resume", width=70, fg_color="transparent",
-                                    hover_color="#333", border_width=1, border_color="#F5F5F5", corner_radius=15,
-                                    command=lambda f=folder: self.toggle_folder_status(f))
-            status_btn.pack(side="right", pady=5, padx=5)
+            status_btn = ctk.CTkButton(
+                folder_frame,
+                image=pause_icon_loaded if is_active else play_icon_loaded,
+                text=" Pause" if is_active else " Resume",
+                width=70, height=32, fg_color="transparent",
+                hover_color="#333", border_width=1, border_color="#F5F5F5", corner_radius=20,
+                command=lambda f=folder: self.toggle_folder_status(f)
+            )
+            status_btn.pack(side="right", pady=0, padx=0)
 
             self.folder_widgets.append(folder_frame)
+
+        
+    
+
+    def create_monitor_button(self):
+        """Creates and shows the monitoring button"""
+        self.monitor_button = ctk.CTkButton(self.main_view, 
+                                          text="Stop monitoring folders" if self.monitoring else "Start monitoring folders", 
+                                          fg_color="#ff2d55" if self.monitoring else "#28a745", 
+                                          text_color="white", width=200, height=50, corner_radius=25, 
+                                          font=("Arial", 12), command=self.toggle_monitoring)
+        self.monitor_button.pack(pady=10, padx=10)
+    
+    def add_folder(self):
+        folder = filedialog.askdirectory()
+        if folder and folder not in self.monitored_folders:
+            self.db.add_folder(folder)
+            self.monitored_folders.append(folder)
+            # Create monitoring button if this is the first folder
+            if len(self.monitored_folders) == 1:
+                self.create_monitor_button()
+            self.update_folder_list_ui()
+    
+    def toggle_monitoring(self):
+        if not self.monitor_button:
+            return
+        if self.monitoring:
+            self.stop_monitoring()
+        else:
+            self.start_monitoring()
+    
+    def start_monitoring(self):
+        if not self.monitor_button:
+            return
+        self.stop_monitoring()
+        
+        # Only include active folders
+        active_folders = [folder for folder in self.monitored_folders if self.db.get_folder_status(folder)]
+        
+        if active_folders:  # Only create handler and organize if there are active folders
+            handler = FileHandler(self.rules, active_folders)
+            handler.organize_all()
+            
+            # Start observers for active folders
+            for folder in active_folders:
+                observer = Observer()
+                observer.schedule(handler, folder, recursive=False)
+                observer.start()
+                self.observers[folder] = observer
+        
+        pause_icon_loaded = ctk.CTkImage(
+            light_image=Image.open(get_resource_path(os.path.join("assets","pause.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets","pause.png"))),
+            size=(16, 16)
+        )
+        
+        self.monitoring = True
+        self.db.toggle_monitoring_status()
+        self.monitor_button.configure(image=pause_icon_loaded, text=" Stop Monitoring", fg_color="#ff2d55")
+    
+    def stop_monitoring(self):
+        if not self.monitor_button:
+            return
+        for observer in self.observers.values():
+            observer.stop()
+            observer.join()
+        self.observers = {}
+        
+        self.monitoring = False
+        self.db.toggle_monitoring_status()
+        self.monitor_button.configure(text="Start Monitoring", fg_color="#28a745")
+
+    def remove_folder(self, folder):
+        """Removes a folder from monitoring."""
+        # Stop monitoring this folder if it's active
+        if folder in self.observers:
+            self.observers[folder].stop()
+            self.observers[folder].join()
+            del self.observers[folder]
+        
+        # Remove from database
+        self.db.remove_folder(folder)
+        
+        # Remove from monitored folders list
+        self.monitored_folders.remove(folder)
+        
+        # Close the popup
+        if self.popup:
+            self.popup.destroy()
+            self.popup = None
+        
+        # Remove monitoring button if no folders left
+        if not self.monitored_folders and self.monitor_button:
+            self.monitor_button.destroy()
+            self.monitor_button = None
+        
+        # Update the UI
+        self.update_folder_list_ui()
 
     def setup_rules_view(self):
         """Creates the rules management view"""
@@ -147,8 +321,8 @@ class App:
         header.pack(fill="x", padx=20, pady=(10, 20))
         
         back_icon = ctk.CTkImage(
-            light_image=Image.open(get_resource_path("arrow-left.png")),
-            dark_image=Image.open(get_resource_path("arrow-left.png")),
+            light_image=Image.open(get_resource_path(os.path.join("assets","arrow-left.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets","arrow-left.png"))),
             size=(18, 18)
         )
         back_btn = ctk.CTkButton(header, image=back_icon, text=" General settings", width=30,
@@ -158,7 +332,7 @@ class App:
 
         # Sort by section
         self.sort_section = ctk.CTkFrame(self.rules_view, fg_color="transparent")
-        self.sort_section.pack(fill="x", padx=20, pady=10)
+        self.sort_section.pack(fill="x", padx=20, pady=(0, 0))
         
         # Sort header (always visible)
         sort_header = ctk.CTkFrame(self.sort_section, fg_color="transparent")
@@ -169,13 +343,13 @@ class App:
         
         # Initialize chevron icons
         self.chevron_down = ctk.CTkImage(
-            light_image=Image.open(get_resource_path("arrow-circle-down.png")),
-            dark_image=Image.open(get_resource_path("arrow-circle-down.png")),
+            light_image=Image.open(get_resource_path(os.path.join("assets","arrow-circle-down.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets","arrow-circle-down.png"))),
             size=(16, 16)
         )
         self.chevron_up = ctk.CTkImage(
-            light_image=Image.open(get_resource_path("arrow-circle-up.png")),
-            dark_image=Image.open(get_resource_path("arrow-circle-up.png")),
+            light_image=Image.open(get_resource_path(os.path.join("assets","arrow-circle-up.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets","arrow-circle-up.png"))),
             size=(16, 16)
         )
         
@@ -186,18 +360,19 @@ class App:
         self.sort_expand_btn.pack(side="right")
         
         # Description (always visible, left-aligned)
-        sort_desc = ctk.CTkLabel(self.sort_section, text="Group similar filetypes together",
+        sort_desc = ctk.CTkLabel(self.sort_section, text="Choose how you want to sort your files",
                                 text_color="gray", font=("Arial", 12))
-        sort_desc.pack(anchor="w", pady=(5, 10))
+        sort_desc.pack(anchor="w", pady=(5, 0))
         
         # Create collapsible content container
         self.sort_content = ctk.CTkFrame(self.sort_section, fg_color="transparent")
-        self.sort_content.pack(fill="x", pady=(0, 0))
+        # Start collapsed
+        # self.sort_content.pack(fill="x", pady=(0, 0))
         
         # Sort options
-        filetype_option = self.create_sort_option(self.sort_content, "folder.png", "Filetype",
+        filetype_option = self.create_sort_option(self.sort_content, os.path.join("assets","folder.png"), "Filetype",
                                                 "Group similar filetypes together", True)
-        ai_option = self.create_sort_option(self.sort_content, "magicpen.png", "AI",
+        ai_option = self.create_sort_option(self.sort_content, os.path.join("assets","magicpen.png"), "AI",
                                           "Coming soon...", False)
         
         # Separator
@@ -219,24 +394,27 @@ class App:
                                            command=self.toggle_ext_section)
         self.ext_expand_btn.pack(side="right")
         
-        ext_desc = ctk.CTkLabel(self.ext_section, text="Group similar filetypes together",
+        ext_desc = ctk.CTkLabel(self.ext_section, text="Manage extensions and their corresponding folders",
                                text_color="gray", font=("Arial", 12))
         ext_desc.pack(anchor="w", pady=(5, 15))
         
         # Create scrollable frame for extension categories
         self.ext_content = ctk.CTkScrollableFrame(self.ext_section, fg_color="transparent", 
-                                                height=300)
-        self.ext_content.pack(fill="x", pady=(0, 0))
+                                                height=150)
+        # Start collapsed
+        # self.ext_content.pack(fill="x", pady=(0, 0))
         
         # Organize rules by category
         self.display_categorized_rules()
         
         # Add Extension button
-        add_ext_btn = ctk.CTkButton(self.ext_section, text="Add Extension",
-                                   fg_color="transparent", text_color="gray",
+        self.add_ext_btn = ctk.CTkButton(self.ext_section, text="+ Add Extension",
+                                   fg_color="transparent", text_color="#FF617F",
                                    hover_color="#282828",
                                    command=self.show_add_extension_dialog)
-        add_ext_btn.pack(pady=10)
+        self.add_ext_btn.pack(anchor="w", pady=10, padx=(0,0))
+        # Start collapsed
+        self.add_ext_btn.pack_forget()
 
     def display_categorized_rules(self):
         """Display rules from database organized by categories"""
@@ -271,8 +449,8 @@ class App:
         category_frame.pack(fill="x", pady=(0, 10))
         
         folder_icon = ctk.CTkImage(
-            light_image=Image.open(get_resource_path("folder.png")),
-            dark_image=Image.open(get_resource_path("folder.png")),
+            light_image=Image.open(get_resource_path(os.path.join("assets","folder.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets","folder.png"))),
             size=(20, 20)
         )
         icon_label = ctk.CTkLabel(category_frame, image=folder_icon, text="")
@@ -312,8 +490,8 @@ class App:
         
         # Delete button
         delete_icon = ctk.CTkImage(
-            light_image=Image.open(get_resource_path("minus-circle.png")),
-            dark_image=Image.open(get_resource_path("minus-circle.png")),
+            light_image=Image.open(get_resource_path(os.path.join("assets","minus-circle.png"))),
+            dark_image=Image.open(get_resource_path(os.path.join("assets","minus-circle.png"))),
             size=(20, 20)
         )
         delete_btn = ctk.CTkButton(row, image=delete_icon, text="", width=30,
@@ -348,21 +526,24 @@ class App:
         self.popup = ctk.CTkToplevel(self.root)
         self.popup.overrideredirect(True)
         self.popup.geometry("180x100")
+        self.popup.configure(corner_radius=16)
         
         # Position the popup near the clicked button
-        x = self.root.winfo_x() + button.winfo_rootx() - self.root.winfo_rootx()
-        y = self.root.winfo_y() + button.winfo_rooty() - self.root.winfo_rooty() + 30
+        x = self.root.winfo_x() + button.winfo_rootx() - self.root.winfo_rootx() + 170
+        y = self.root.winfo_y() + button.winfo_rooty() - self.root.winfo_rooty() + 60
         self.popup.geometry(f"+{x}+{y}")
 
         # Update the profile button to call show_rules_view
         profile_button = ctk.CTkButton(self.popup, text="Manage custom rules", 
-                                     corner_radius=15, command=self.show_rules_view)
-        profile_button.pack(pady=10, padx=10)
+                                     corner_radius=15, command=self.show_rules_view,
+                                     anchor="w", fg_color="#1F1F1F", text_color="#FFFFFF", hover_color="#1F1F1F", height=35)
+        profile_button.pack(pady=10, padx=10, fill="x")
 
         settings_button = ctk.CTkButton(self.popup, text="Remove folder", 
-                                      fg_color="transparent", text_color="#FF617F",
-                                      command=lambda: self.remove_folder(folder))
-        settings_button.pack(pady=10, padx=10)
+                                      fg_color="transparent", text_color="#FF3B30",
+                                      command=lambda: self.remove_folder(folder),
+                                      anchor="w")
+        settings_button.pack(pady=10, padx=10, fill="x")
 
         # Close popup when clicking outside
         self.popup.bind("<FocusOut>", lambda event: self.popup.destroy())
@@ -388,72 +569,6 @@ class App:
         self.db.set_folder_status(folder, new_status)
         self.update_folder_list_ui()
     
-    def add_folder(self):
-        folder = filedialog.askdirectory()
-        if folder and folder not in self.monitored_folders:
-            self.db.add_folder(folder)
-            self.monitored_folders.append(folder)
-            self.update_folder_list_ui()
-    
-    def toggle_monitoring(self):
-        if self.monitoring:
-            self.stop_monitoring()
-        else:
-            self.start_monitoring()
-    
-    def start_monitoring(self):
-        self.stop_monitoring()
-        
-        # Only include active folders
-        active_folders = [folder for folder in self.monitored_folders if self.db.get_folder_status(folder)]
-        
-        if active_folders:  # Only create handler and organize if there are active folders
-            handler = FileHandler(self.rules, active_folders)
-            handler.organize_all()
-            
-            # Start observers for active folders
-            for folder in active_folders:
-                observer = Observer()
-                observer.schedule(handler, folder, recursive=False)
-                observer.start()
-                self.observers[folder] = observer
-        
-        self.monitoring = True
-        self.db.toggle_monitoring_status()
-        self.monitor_button.configure(text="Stop Monitoring", fg_color="#ff2d55")
-    
-    def stop_monitoring(self):
-        for observer in self.observers.values():
-            observer.stop()
-            observer.join()
-        self.observers = {}
-        
-        self.monitoring = False
-        self.db.toggle_monitoring_status()
-        self.monitor_button.configure(text="Start Monitoring", fg_color="#28a745")
-
-    def remove_folder(self, folder):
-        """Removes a folder from monitoring."""
-        # Stop monitoring this folder if it's active
-        if folder in self.observers:
-            self.observers[folder].stop()
-            self.observers[folder].join()
-            del self.observers[folder]
-        
-        # Remove from database
-        self.db.remove_folder(folder)
-        
-        # Remove from monitored folders list
-        self.monitored_folders.remove(folder)
-        
-        # Close the popup
-        if self.popup:
-            self.popup.destroy()
-            self.popup = None
-        
-        # Update the UI
-        self.update_folder_list_ui()
-
     def toggle_sort_section(self):
         """Toggle the visibility of the sort section content"""
         try:
@@ -471,9 +586,11 @@ class App:
         try:
             if self.ext_content.winfo_viewable():
                 self.ext_content.pack_forget()
+                self.add_ext_btn.pack_forget()
                 self.ext_expand_btn.configure(image=self.chevron_down)
             else:
                 self.ext_content.pack(fill="x", pady=(5, 0))
+                self.add_ext_btn.pack(pady=10)
                 self.ext_expand_btn.configure(image=self.chevron_up)
         except Exception as e:
             print(f"Error toggling extension section: {str(e)}")
@@ -564,8 +681,8 @@ class App:
         if active:
             try:
                 check_icon = ctk.CTkImage(
-                    light_image=Image.open(get_resource_path("tick-circle.png")),
-                    dark_image=Image.open(get_resource_path("tick-circle.png")),
+                    light_image=Image.open(get_resource_path(os.path.join("assets","tick-circle.png"))),
+                    dark_image=Image.open(get_resource_path(os.path.join("assets","tick-circle.png"))),
                     size=(20, 20)
                 )
                 check_label = ctk.CTkLabel(frame, image=check_icon, text="")
